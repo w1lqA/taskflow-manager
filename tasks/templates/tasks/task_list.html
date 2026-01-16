@@ -75,7 +75,7 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
 
-        /* Минималистичные кнопки */
+        /* Кнопки */
         .glass-btn {
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -90,6 +90,7 @@
         .glass-btn-primary {
             background: rgba(30, 64, 175, 0.15);
             border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #fff
         }
 
         .glass-btn-primary:hover {
@@ -97,16 +98,12 @@
             border-color: rgba(59, 130, 246, 0.3);
         }
 
-        /* Минималистичные статусы */
+        /* Статусы */
         .status-badge {
             padding: 0.3rem 0.9rem;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
             border-radius: 9999px;
             font-size: 0.75rem;
             font-weight: 500;
-            letter-spacing: 0.3px;
             backdrop-filter: blur(8px);
             border: 1px solid;
         }
@@ -135,7 +132,63 @@
             border-color: rgba(100, 116, 139, 0.15);
         }
 
-        /* Анимация появления */
+        /* Модальные окна */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 15, 28, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            margin: auto;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-container {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 1.5rem 1.5rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .modal-content {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        /* Анимации */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -156,7 +209,22 @@
         .delay-300 { animation-delay: 0.3s; }
         .delay-400 { animation-delay: 0.4s; }
 
-        /* Тонкие разделители */
+        /* Уведомления */
+        .notification {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 2000;
+            max-width: 350px;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        /* Разделители */
         .divider {
             height: 1px;
             background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
@@ -164,14 +232,36 @@
     </style>
 </head>
 <body class="relative">
-    <!-- Тонкие blobs фона -->
+    {% csrf_token %}
+    <!-- фоновые круги -->
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
 
-    <!-- Основной контент -->
+    <!-- toasts -->
+    <div id="notification" class="notification glass-card p-4 rounded-xl hidden">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div id="notification-icon" class="text-lg"></div>
+                <div>
+                    <div id="notification-title" class="font-medium text-white"></div>
+                    <div id="notification-message" class="text-sm text-gray-300"></div>
+                </div>
+            </div>
+            <button onclick="hideNotification()" class="text-gray-400 hover:text-white">
+                ✕
+            </button>
+        </div>
+    </div>
+
+    <!-- модалки -->
+    <div id="modal-overlay" class="modal-overlay" onclick="closeModal()">
+        <div class="modal-container" onclick="event.stopPropagation()">
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
     <div class="relative z-10">
-        <div class="container mx-auto px-4 py-8 max-w-6xl">
-            <!-- Шапка -->
+        <div class="mx-auto px-4 py-8 max-w-6xl flex flex-col justify-start min-h-screen">
             <header class="mb-12">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                     <div class="fade-in">
@@ -179,14 +269,14 @@
                         <p class="text-gray-400">Минималистичный менеджер задач</p>
                     </div>
                     
-                    <a href="{% url 'task_create' %}" 
-                       class="fade-in delay-100 glass-card glass-btn-primary text-white px-5 py-3 rounded-xl flex items-center gap-3 group">
+                    <button onclick="openTaskForm()" 
+                       class="fade-in delay-100 glass-card glass-btn-primary text-white px-5 py-3 rounded-xl flex items-center gap-3 group cursor-pointer">
                         <span class="text-lg">+</span>
                         <span class="font-medium">Новая задача</span>
-                    </a>
+                    </button>
                 </div>
 
-                <!-- Простая статистика -->
+                <!-- Статистика -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
                     <div class="fade-in delay-100 glass-card p-4 rounded-xl">
                         <div class="text-2xl font-semibold text-white mb-1">{{ tasks|length }}</div>
@@ -215,22 +305,6 @@
                 </div>
             </header>
 
-            <!-- Сообщения -->
-            {% if messages %}
-            <div class="mb-6 space-y-3">
-                {% for message in messages %}
-                <div class="fade-in glass-card p-3 rounded-lg border-l-2 
-                    {% if message.tags == 'success' %}border-emerald-500/50
-                    {% else %}border-blue-500/50{% endif %}">
-                    <div class="flex items-center gap-3 text-sm">
-                        <span class="text-gray-300">{{ message }}</span>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            <!-- Список задач -->
             <main class="mb-12">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-lg font-medium text-white">Задачи</h2>
@@ -246,21 +320,21 @@
 
                 <div class="divider mb-6"></div>
 
-                <div class="space-y-3">
+                <div id="tasks-container" class="space-y-3">
                     {% for task in tasks %}
-                    <div class="fade-in glass-card rounded-xl p-5 hover:border-gray-600/30">
+                    <div class="fade-in glass-card rounded-xl p-5 hover:border-gray-600/30 task-item" data-task-id="{{ task.id }}">
                         <div class="flex flex-col lg:flex-row justify-between gap-5">
                             <!-- Информация о задаче -->
                             <div class="flex-1">
                                 <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
-                                    <h3 class="text-base font-medium text-white">
+                                    <h3 class="text-base font-medium text-white cursor-pointer" onclick="openTaskDetail('{{ task.id }}')">
                                         {{ task.title }}
                                     </h3>
                                     <div class="flex gap-2">
                                         <span class="status-badge status-{{ task.status }}">
                                             {{ task.get_status_display }}
                                         </span>
-                                        <span class="px-2 py-1 rounded flex flex-row items-center text-xs bg-gray-800/50 text-gray-300 border border-gray-700/50">
+                                        <span class="px-2 py-1 rounded text-xs bg-gray-800/50 text-gray-300 border border-gray-700/50">
                                             Приоритет {{ task.priority }}
                                         </span>
                                     </div>
@@ -294,20 +368,20 @@
                             
                             <!-- Действия -->
                             <div class="flex lg:flex-col gap-2 self-start">
-                                <a href="{% url 'task_detail' task.pk %}" 
+                                <button onclick="openTaskDetail('{{ task.id }}')" 
                                    class="glass-btn px-3 py-2 rounded-lg flex items-center gap-2 text-xs text-gray-300 hover:text-white transition-colors">
                                     <span>Детали</span>
-                                </a>
+                                </button>
                                 
-                                <a href="{% url 'task_update' task.pk %}" 
+                                <button onclick="openTaskForm('{{ task.id }}')" 
                                    class="glass-btn px-3 py-2 rounded-lg flex items-center gap-2 text-xs text-gray-300 hover:text-white transition-colors">
                                     <span>Редактировать</span>
-                                </a>
+                                </button>
                                 
-                                <a href="{% url 'task_confirm_delete' task.pk %}" 
+                                <button onclick="openDeleteModal('{{ task.id }}')" 
                                    class="glass-btn px-3 py-2 rounded-lg flex items-center gap-2 text-xs text-gray-300 hover:text-red-400 transition-colors">
                                     <span>Удалить</span>
-                                </a>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -319,18 +393,17 @@
                         <p class="text-gray-400 text-sm mb-6 max-w-sm mx-auto">
                             Начните планирование, создав свою первую задачу
                         </p>
-                        <a href="{% url 'task_create' %}" 
-                           class="inline-flex items-center gap-2 glass-btn-primary px-5 py-2.5 rounded-lg">
+                        <button onclick="openTaskForm()" 
+                           class="inline-flex items-center gap-2 glass-btn-primary px-5 py-2.5 rounded-lg cursor-pointer">
                             <span>+</span>
                             Создать задачу
-                        </a>
+                        </button>
                     </div>
                     {% endfor %}
                 </div>
             </main>
 
-            <!-- Минималистичный подвал -->
-            <footer class="pt-6">
+            <footer class="pt-6 mt-auto">
                 <div class="divider mb-6"></div>
                 <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                     <div class="text-xs text-gray-500">
@@ -345,30 +418,290 @@
         </div>
     </div>
 
-    <script>
-        // Простая анимация при загрузке
-        document.addEventListener('DOMContentLoaded', function() {
-            // Плавное появление всего контента
-            const content = document.querySelector('.relative.z-10');
-            content.style.opacity = '0';
-            
-            setTimeout(() => {
-                content.style.transition = 'opacity 0.5s ease';
-                content.style.opacity = '1';
-            }, 50);
+<script>
+    let currentTaskId = null;
+    
+    function getCSRFToken() {
+        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        return csrfInput ? csrfInput.value : '';
+    }
 
-            // Минималистичный hover эффект для карточек
-            const cards = document.querySelectorAll('.glass-card');
-            cards.forEach(card => {
-                card.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-2px)';
-                });
-                
-                card.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0)';
-                });
+    // ===== УПРАВЛЕНИЕ МОДАЛКАМИ =====
+    function openModal(content) {
+        document.getElementById('modal-content').innerHTML = content;
+        document.getElementById('modal-overlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        document.getElementById('modal-overlay').classList.remove('active');
+        document.body.style.overflow = 'auto';
+        setTimeout(() => {
+            document.getElementById('modal-content').innerHTML = '';
+        }, 300);
+    }
+
+    // ===== ЗАГРУЗКА КОНТЕНТА МОДАЛОК =====
+    function openTaskDetail(taskId) {
+        fetch(`/tasks/task/${taskId}/detail/`, {
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCSRFToken()
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            if (data.html) {
+                openModal(data.html);
+            } else {
+                throw new Error('No HTML content received');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Ошибка', 'Не удалось загрузить детали задачи', 'error');
+        });
+    }
+
+    function openTaskForm(taskId = null) {
+        currentTaskId = taskId;
+        const url = taskId ? `/tasks/task/${taskId}/form/` : '/tasks/task/form/';
+        
+        fetch(url, {
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCSRFToken()
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            if (data.html) {
+                openModal(data.html);
+            } else {
+                throw new Error('No HTML content received');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Ошибка', 'Не удалось загрузить форму', 'error');
+        });
+    }
+
+    function openDeleteModal(taskId) {
+        currentTaskId = taskId;
+        fetch(`/tasks/task/${taskId}/delete-modal/`, {
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCSRFToken()
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            if (data.html) {
+                openModal(data.html);
+            } else {
+                throw new Error('No HTML content received');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Ошибка', 'Не удалось загрузить подтверждение удаления', 'error');
+        });
+    }
+
+    // ===== ОБРАБОТКА ФОРМ =====
+    function submitTaskForm(event) {
+        event.preventDefault();
+        console.log('Submitting form for task:', currentTaskId);
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        
+        // Добавляем недостающие поля
+        if (!formData.has('project')) formData.set('project', '');
+        if (!formData.has('due_date')) formData.set('due_date', '');
+        
+        const url = currentTaskId ? `/tasks/task/${currentTaskId}/update/` : '/tasks/task/create/';
+        const csrfToken = getCSRFToken();
+        
+        console.log('URL:', url);
+        console.log('FormData entries:', Array.from(formData.entries()));
+        
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                showNotification('Успешно', data.message, 'success');
+                closeModal();
+
+                window.location.reload();
+            } else {
+                showNotification('Ошибка', data.error || 'Произошла ошибка при сохранении', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            showNotification('Ошибка', 'Не удалось сохранить задачу. Проверьте консоль.', 'error');
+        });
+        
+        return false;
+    }
+
+    function deleteTask() {
+        console.log('Deleting task:', currentTaskId);
+        const csrfToken = getCSRFToken();
+        
+        fetch(`/tasks/task/${currentTaskId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            console.log('Delete response status:', response.status);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Delete response data:', data);
+            if (data.success) {
+                showNotification('Успешно', data.message, 'success');
+                closeModal();
+                // Удаляем элемент из списка
+                const taskElement = document.querySelector(`[data-task-id="${currentTaskId}"]`);
+                if (taskElement) {
+                    taskElement.style.opacity = '0';
+                    taskElement.style.transform = 'translateX(-20px)';
+                    setTimeout(() => {
+                        taskElement.remove();
+                        updateTaskCount();
+                    }, 300);
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                showNotification('Ошибка', data.error || 'Произошла ошибка при удалении', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            showNotification('Ошибка', 'Не удалось удалить задачу. Проверьте консоль.', 'error');
+        });
+    }
+
+    // ===== УВЕДЫ =====
+    function showNotification(title, message, type = 'info') {
+        const notification = document.getElementById('notification');
+        const icon = document.getElementById('notification-icon');
+        const titleEl = document.getElementById('notification-title');
+        const messageEl = document.getElementById('notification-message');
+        
+        // Устанавливаем иконку в зависимости от типа
+        const icons = {
+            success: '✅',
+            error: '❌',
+            info: 'ℹ️'
+        };
+        icon.textContent = icons[type] || 'ℹ️';
+        
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        
+        notification.classList.remove('hidden');
+        setTimeout(() => notification.classList.add('show'), 10);
+        
+        // Автоматическое скрытие
+        setTimeout(() => {
+            hideNotification();
+        }, 5000);
+    }
+
+    function hideNotification() {
+        const notification = document.getElementById('notification');
+        notification.classList.remove('show');
+        setTimeout(() => notification.classList.add('hidden'), 400);
+    }
+
+    // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+    function updateTaskCount() {
+        const taskCount = document.querySelectorAll('.task-item').length;
+        const countElement = document.querySelector('footer .text-gray-300');
+        if (countElement) {
+            countElement.textContent = taskCount;
+        }
+    }
+
+    function updatePriorityValue(slider) {
+        const valueElement = document.getElementById('priorityValue');
+        if (valueElement) {
+            valueElement.textContent = slider.value;
+        }
+    }
+
+    // ===== ИНИЦИАЛИЗАЦИЯ =====
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('TaskFlow initialized');
+        
+        // Плавное появление контента
+        const content = document.querySelector('.relative.z-10');
+        content.style.opacity = '0';
+        setTimeout(() => {
+            content.style.transition = 'opacity 0.5s ease';
+            content.style.opacity = '1';
+        }, 50);
+
+        // Hover эффекты для карточек
+        const cards = document.querySelectorAll('.glass-card');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+            });
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
             });
         });
-    </script>
+
+        // Закрытие модалки по Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+        
+        // Добавляем глобальный CSRF токен в head
+        if (!document.querySelector('meta[name="csrf-token"]')) {
+            const csrfToken = getCSRFToken();
+            if (csrfToken) {
+                const meta = document.createElement('meta');
+                meta.name = 'csrf-token';
+                meta.content = csrfToken;
+                document.head.appendChild(meta);
+            }
+        }
+    });
+</script>
 </body>
 </html>

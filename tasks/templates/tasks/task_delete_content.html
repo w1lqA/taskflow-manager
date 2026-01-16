@@ -1,0 +1,41 @@
+<div>
+    <div class="modal-header">
+        <h2 class="text-xl font-semibold text-white">Подтверждение удаления</h2>
+    </div>
+    
+    <div class="modal-content">
+        <div class="text-center p-6">
+            <div class="text-5xl mb-4 text-red-400">⚠️</div>
+            <h3 class="text-lg font-medium text-white mb-2">Удалить задачу?</h3>
+            <p class="text-gray-300 mb-1">"<span class="font-semibold">{{ task.title }}</span>"</p>
+            <p class="text-gray-400 text-sm mb-6">Это действие нельзя отменить. Все данные задачи будут удалены безвозвратно.</p>
+            
+            <div class="glass-card rounded-xl p-4 mb-6 text-left">
+                <div class="text-sm text-gray-400 mb-2">Детали задачи:</div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="status-badge status-{{ task.status }}">
+                        {{ task.get_status_display }}
+                    </span>
+                    <span class="text-xs text-gray-400">Приоритет: {{ task.priority }}</span>
+                </div>
+                {% if task.project %}
+                <div class="text-sm text-gray-300">Проект: {{ task.project.title }}</div>
+                {% endif %}
+                <div class="text-xs text-gray-500 mt-2">
+                    Создана: {{ task.created_at|date:"d.m.Y" }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-footer">
+        <button onclick="closeModal()" 
+                class="glass-btn px-4 py-2.5 rounded-lg text-sm text-gray-300 hover:text-white transition-colors">
+            Отмена
+        </button>
+        <button onclick="deleteTask()" 
+                class="glass-btn px-4 py-2.5 rounded-lg text-sm font-medium text-white bg-red-500/20 border border-red-500/30 hover:bg-red-500/30 transition-colors">
+            Да, удалить задачу
+        </button>
+    </div>
+</div>

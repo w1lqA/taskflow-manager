@@ -2,9 +2,9 @@ from django.db import models
 from django.conf import settings
 
 class Project(models.Model):
-    """Проект или категория для группировки задач."""
+    """проект (категория) для группировки задач."""
     title = models.CharField('Название', max_length=255)
-    color = models.CharField('Цвет', max_length=7, default='#3498db')  # HEX
+    color = models.CharField('Цвет', max_length=7, default='#3498db')
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -24,7 +24,7 @@ class Project(models.Model):
         return self.title
 
 class Tag(models.Model):
-    """Тег для категоризации задач."""
+    """тег для категоризации задач."""
     name = models.CharField('Название', max_length=100, unique=True)
     color = models.CharField('Цвет', max_length=7, default='#95a5a6')
 
@@ -37,7 +37,7 @@ class Tag(models.Model):
         return self.name
 
 class Task(models.Model):
-    """Основная сущность - задача."""
+    """дефолтная сущность - задача."""
     STATUS_CHOICES = [
         ('todo', 'К выполнению'),
         ('in_progress', 'В процессе'),
@@ -57,7 +57,7 @@ class Task(models.Model):
     due_date = models.DateTimeField('Срок выполнения', null=True, blank=True)
     completed_at = models.DateTimeField('Дата завершения', null=True, blank=True)
     
-    # Связи
+    # связи
     project = models.ForeignKey(
         Project,
         on_delete=models.CASCADE,
@@ -83,7 +83,7 @@ class Task(models.Model):
         related_name='tasks',
         verbose_name='Теги',
         blank=True
-    )  # ✅ Связь многие-ко-многим
+    ) #многие ко многим
     
     # Временные метки
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
@@ -105,7 +105,7 @@ class Task(models.Model):
 
 
 class Comment(models.Model):
-    """Комментарий к задаче."""
+    """комментарий к задаче."""
     content = models.TextField('Текст комментария')
     task = models.ForeignKey(
         Task,
@@ -132,7 +132,6 @@ class Comment(models.Model):
         return f'Комментарий от {self.author} к задаче #{self.task.id}'
 
 class TaskHistory(models.Model):
-    """История изменений задачи (подготовка для django-simple-history)."""
     ACTION_CHOICES = [
         ('created', 'Создано'),
         ('updated', 'Обновлено'),

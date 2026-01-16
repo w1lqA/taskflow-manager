@@ -1,86 +1,114 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Task
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+from .models import Task, Project
 
-# === READ: Список всех задач ===
+# основной view (главная страница)
 @login_required
 def task_list(request):
-    """Страница со списком всех задач текущего пользователя."""
+    """Главная страница со списком задач."""
     tasks = Task.objects.filter(author=request.user).order_by('-created_at')
-    return render(request, 'tasks/task_list.html', {'tasks': tasks})
+    projects = Project.objects.filter(owner=request.user)
+    return render(request, 'tasks/task_list.html', {
+        'tasks': tasks,
+        'projects': projects
+    })
 
-# === READ: Детали одной задачи ===
+# ajax views для модалок 
 @login_required
-def task_detail(request, pk):
-    """Страница с деталями конкретной задачи."""
-    task = get_object_or_404(Task, pk=pk, author=request.user)
-    return render(request, 'tasks/task_detail.html', {'task': task})
+def task_detail_modal(request, pk):
+    """детали задачи """
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        task = get_object_or_404(Task, pk=pk, author=request.user)
+        html = render_to_string('tasks/task_detail_content.html', {'task': task})
+        return JsonResponse({'html': html})
+    return redirect('task_list')
 
-# === CREATE: Создание новой задачи ===
+@login_required
+def task_form_modal(request, pk=None):
+    """форма создания/редактирования задачи"""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        task = None
+        if pk:
+            task = get_object_or_404(Task, pk=pk, author=request.user)
+        
+        projects = Project.objects.filter(owner=request.user)
+        html = render_to_string('tasks/task_form_content.html', {
+            'task': task,
+            'projects': projects
+        })
+        return JsonResponse({'html': html})
+    return redirect('task_list')
+
+@login_required
+def task_delete_modal(request, pk):
+    """подтверждение удаления."""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        task = get_object_or_404(Task, pk=pk, author=request.user)
+        html = render_to_string('tasks/task_delete_content.html', {'task': task})
+        return JsonResponse({'html': html})
+    return redirect('task_list')
+
+# обработка форм 
 @login_required
 def task_create(request):
-    """Страница создания новой задачи."""
-    if request.method == 'POST':
-        # Создаем задачу из данных формы
-        task = Task.objects.create(
-            title=request.POST.get('title'),
-            description=request.POST.get('description', ''),
-            status=request.POST.get('status', 'todo'),
-            priority=int(request.POST.get('priority', 3)),
-            due_date=request.POST.get('due_date') or None,
-            author=request.user,
-            project_id=request.POST.get('project') or None
-        )
-        messages.success(request, f'Задача "{task.title}" создана!')
-        return redirect('task_detail', pk=task.pk)
-    
-    # GET запрос - показываем пустую форму
-    from .models import Project
-    projects = Project.objects.filter(owner=request.user)
-    return render(request, 'tasks/task_form.html', {
-        'form_title': 'Создать задачу',
-        'projects': projects
-    })
+    # создание через ajax
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        try:
+            task = Task.objects.create(
+                title=request.POST.get('title'),
+                description=request.POST.get('description', ''),
+                status=request.POST.get('status', 'todo'),
+                priority=int(request.POST.get('priority', 3)),
+                due_date=request.POST.get('due_date') or None,
+                author=request.user,
+                project_id=request.POST.get('project') or None
+            )
+            return JsonResponse({
+                'success': True,
+                'message': f'Задача "{task.title}" создана!',
+                'task_id': task.id
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
 
-# === UPDATE: Редактирование задачи ===
 @login_required
 def task_update(request, pk):
-    """Страница редактирования существующей задачи."""
-    task = get_object_or_404(Task, pk=pk, author=request.user)
-    
-    if request.method == 'POST':
-        # Обновляем задачу
-        task.title = request.POST.get('title')
-        task.description = request.POST.get('description', '')
-        task.status = request.POST.get('status', 'todo')
-        task.priority = int(request.POST.get('priority', 3))
-        task.due_date = request.POST.get('due_date') or None
-        task.project_id = request.POST.get('project') or None
-        task.save()
-        
-        messages.success(request, f'Задача "{task.title}" обновлена!')
-        return redirect('task_detail', pk=task.pk)
-    
-    # GET запрос - показываем форму с данными задачи
-    from .models import Project
-    projects = Project.objects.filter(owner=request.user)
-    return render(request, 'tasks/task_form.html', {
-        'form_title': 'Редактировать задачу',
-        'task': task,
-        'projects': projects
-    })
+    # обновление задачи через ajax.
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        try:
+            task = get_object_or_404(Task, pk=pk, author=request.user)
+            task.title = request.POST.get('title')
+            task.description = request.POST.get('description', '')
+            task.status = request.POST.get('status', 'todo')
+            task.priority = int(request.POST.get('priority', 3))
+            task.due_date = request.POST.get('due_date') or None
+            task.project_id = request.POST.get('project') or None
+            task.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Задача "{task.title}" обновлена!'
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid request'})
 
-# === DELETE: Удаление задачи ===
 @login_required
-def task_confirm_delete(request, pk):
-    """Страница подтверждения удаления задачи."""
-    task = get_object_or_404(Task, pk=pk, author=request.user)
-    
-    if request.method == 'POST':
-        task_title = task.title
-        task.delete()
-        messages.success(request, f'Задача "{task_title}" удалена!')
-        return redirect('task_list')
-    
-    return render(request, 'tasks/task_confirm_delete.html', {'task': task})
+def task_delete(request, pk):
+    # удаление черещ ajax
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        try:
+            task = get_object_or_404(Task, pk=pk, author=request.user)
+            task_title = task.title
+            task.delete()
+            return JsonResponse({
+                'success': True,
+                'message': f'Задача "{task_title}" удалена!'
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid request'})

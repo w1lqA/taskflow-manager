@@ -1,0 +1,63 @@
+<div class="modal-header">
+    <h2 class="text-xl font-semibold text-white">{{ task.title }}</h2>
+</div>
+<div class="modal-content">
+    {% if task.description %}
+    <div class="mb-6">
+        <h3 class="text-sm font-medium text-gray-400 mb-2">Описание</h3>
+        <p class="text-gray-300 whitespace-pre-wrap">{{ task.description }}</p>
+    </div>
+    {% endif %}
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <h3 class="text-sm font-medium text-gray-400 mb-2">Статус</h3>
+            <div class="flex items-center gap-2">
+                <span class="status-badge status-{{ task.status }}">
+                    {{ task.get_status_display }}
+                </span>
+            </div>
+        </div>
+        
+        <div>
+            <h3 class="text-sm font-medium text-gray-400 mb-2">Приоритет</h3>
+            <div class="text-gray-300">Уровень {{ task.priority }} из 5</div>
+        </div>
+        
+        {% if task.project %}
+        <div>
+            <h3 class="text-sm font-medium text-gray-400 mb-2">Проект</h3>
+            <div class="text-gray-300">{{ task.project.title }}</div>
+        </div>
+        {% endif %}
+        
+        {% if task.due_date %}
+        <div>
+            <h3 class="text-sm font-medium text-gray-400 mb-2">Срок выполнения</h3>
+            <div class="text-gray-300">{{ task.due_date|date:"d.m.Y H:i" }}</div>
+        </div>
+        {% endif %}
+        
+        <div>
+            <h3 class="text-sm font-medium text-gray-400 mb-2">Создана</h3>
+            <div class="text-gray-300">{{ task.created_at|date:"d.m.Y H:i" }}</div>
+        </div>
+        
+        <div>
+            <h3 class="text-sm font-medium text-gray-400 mb-2">Изменена</h3>
+            <div class="text-gray-300">{{ task.updated_at|date:"d.m.Y H:i" }}</div>
+        </div>
+        
+        {% if task.completed_at %}
+        <div>
+            <h3 class="text-sm font-medium text-gray-400 mb-2">Завершена</h3>
+            <div class="text-gray-300">{{ task.completed_at|date:"d.m.Y H:i" }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+<div class="modal-footer">
+    <button onclick="closeModal()" class="glass-btn px-4 py-2 rounded-lg text-sm text-gray-300 hover:text-white">
+        Закрыть
+    </button>
+</div>

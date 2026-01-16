@@ -2,19 +2,18 @@ from django.contrib import admin
 from django.utils.html import format_html
 from .models import Project, Tag, Task, Comment, TaskHistory
 
-# === ВСПОМОГАТЕЛЬНЫЙ КЛАСС ДЛЯ INLINE ===
+# вспомогательный класс для inline
 class CommentInline(admin.TabularInline):
     """Inline для отображения комментариев внутри задачи."""
     model = Comment
-    extra = 0  # Не показывать пустые формы для новых комментариев
+    extra = 0  # не показываем пустые формы для новых комментариев
     readonly_fields = ('author', 'created_at', 'updated_at')
-    # raw_id_fields - для inline не применяется, но можно в основном классе
     fields = ('content', 'author', 'created_at', 'updated_at')
     verbose_name = 'Комментарий'
     verbose_name_plural = 'Комментарии к задаче'
 
 
-# === АДМИН-КЛАСС ДЛЯ ПРОЕКТОВ ===
+# админ класс для проектов/
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('id', 'colored_title', 'owner_link', 'tasks_count', 'created_at')
@@ -50,7 +49,7 @@ class ProjectAdmin(admin.ModelAdmin):
         return obj.tasks.count()
 
 
-# === АДМИН-КЛАСС ДЛЯ ТЕГОВ ===
+# админ клас для тегов
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     list_display = ('id', 'colored_name', 'tasks_count_display')
@@ -72,10 +71,10 @@ class TagAdmin(admin.ModelAdmin):
         return obj.tasks.count()
 
 
-# === АДМИН-КЛАСС ДЛЯ ЗАДАЧ (ОСНОВНОЙ) ===
+# админ класс для задач (дефолтный)
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    # Настройка отображаемых полей в списке
+    # нвстройка отображаемых полей в списке
     list_display = (
         'id',
         'title',
@@ -99,7 +98,7 @@ class TaskAdmin(admin.ModelAdmin):
     list_per_page = 30
     list_editable = ('status',)  # Редактирование статуса прямо в списке
 
-    # Группировка полей на форме редактирования
+    # группировка полей на форме редактирования
     fieldsets = (
         ('Основная информация', {
             'fields': ('title', 'description', 'project', 'tags')
@@ -112,7 +111,7 @@ class TaskAdmin(admin.ModelAdmin):
         }),
     )
 
-    # Кастомные методы для отображения
+    # кастомные методы для отображения
     @admin.display(description='Проект')
     def project_link(self, obj):
         if obj.project:
@@ -162,7 +161,7 @@ class TaskAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 
-# === АДМИН-КЛАСС ДЛЯ КОММЕНТАРИЕВ ===
+# админ класс для комментов
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
     list_display = ('id', 'short_content', 'task_link', 'author_link', 'created_at')
@@ -193,7 +192,7 @@ class CommentAdmin(admin.ModelAdmin):
         return format_html('<a href="{}">{}</a>', url, obj.author.username)
 
 
-# === АДМИН-КЛАСС ДЛЯ ИСТОРИИ ИЗМЕНЕНИЙ ===
+# админ класс для истории изменений (пока что история изменений не реализована)
 @admin.register(TaskHistory)
 class TaskHistoryAdmin(admin.ModelAdmin):
     list_display = ('id', 'task_link', 'action_display', 'changed_by_link', 'changed_at')
