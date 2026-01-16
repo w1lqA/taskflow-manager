@@ -99,8 +99,10 @@ class Task(models.Model):
             models.Index(fields=['author', 'created_at']),
         ]
 
+
     def __str__(self):
         return f'{self.title} ({self.get_status_display()})'
+
 
 class Comment(models.Model):
     """Комментарий к задаче."""

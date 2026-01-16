@@ -41,8 +41,6 @@ INSTALLED_APPS = [
     'django_filters',  # Для фильтрации в DRF (позже)
     'users',
     'tasks',
-
-    'simple_history', #для истории задач
 ]
 
 MIDDLEWARE = [
@@ -53,8 +51,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
-    'simple_history.middleware.HistoryRequestMiddleware',
 ]
 
 ROOT_URLCONF = 'taskflow_manager.urls'
