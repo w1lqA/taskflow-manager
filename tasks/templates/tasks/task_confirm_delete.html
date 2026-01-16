@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Удалить задачу - TaskFlow</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; text-align: center; }
+        .warning { background: #fff3e0; border: 1px solid #ff9800; padding: 20px; border-radius: 5px; }
+        .btn { display: inline-block; padding: 10px 20px; margin: 10px; text-decoration: none; border-radius: 4px; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-cancel { background: #757575; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Удалить задачу?</h1>
+    
+    <div class="warning">
+        <h3>"{{ task.title }}"</h3>
+        <p>Вы уверены, что хотите удалить эту задачу? Это действие нельзя отменить.</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Да, удалить</button>
+        <a href="{% url 'task_detail' task.pk %}" class="btn btn-cancel">Отмена</a>
+    </form>
+</body>
+</html>
