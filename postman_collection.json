@@ -1,0 +1,737 @@
+{
+  "info": {
+    "name": "taskflow manager api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "полная коллекция api для тестирования taskflow manager"
+  },
+  "item": [
+    {
+      "name": "авторизация",
+      "item": [
+        {
+          "name": "получить csrf токен",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/login/",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "login", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "войти в систему",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded",
+                "type": "text"
+              },
+              {
+                "key": "X-CSRFToken",
+                "value": "{{csrf_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "{{admin_username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{admin_password}}",
+                  "type": "text"
+                },
+                {
+                  "key": "next",
+                  "value": "/admin/",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/login/",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "login", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "проекты",
+      "item": [
+        {
+          "name": "получить список проектов",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "создать новый проект",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-CSRFToken",
+                "value": "{{csrf_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"рабочие задачи\",\n  \"color\": \"#3498db\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "получить конкретный проект",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "1", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "обновить проект",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-CSRFToken",
+                "value": "{{csrf_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"обновленное название проекта\",\n  \"color\": \"#e74c3c\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/projects/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "1", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "удалить проект",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRFToken",
+                "value": "{{csrf_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/projects/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "projects", "1", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "задачи - основные операции",
+      "item": [
+        {
+          "name": "получить список задач",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "получить список задач с пагинацией",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/?page=2&page_size=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", ""],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "2"
+                },
+                {
+                  "key": "page_size",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "создать новую задачу",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-CSRFToken",
+                "value": "{{csrf_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"важная задача\",\n  \"description\": \"описание важной задачи\",\n  \"status\": \"todo\",\n  \"priority\": 1,\n  \"due_date\": \"2024-12-31T23:59:59Z\",\n  \"project_id\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "получить конкретную задачу",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "1", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "обновить задачу",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-CSRFToken",
+                "value": "{{csrf_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"обновленная задача\",\n  \"description\": \"новое описание\",\n  \"status\": \"in_progress\",\n  \"priority\": 2,\n  \"due_date\": \"2024-12-25T18:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "1", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "частично обновить задачу",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-CSRFToken",
+                "value": "{{csrf_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"done\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "1", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "удалить задачу",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRFToken",
+                "value": "{{csrf_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "1", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "задачи - фильтрация и поиск",
+      "item": [
+        {
+          "name": "фильтрация по статусу",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/?status=todo",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", ""],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "todo"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "фильтрация по приоритету",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/?priority=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", ""],
+              "query": [
+                {
+                  "key": "priority",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "фильтрация по нескольким параметрам",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/?status=in_progress&priority=2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", ""],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "in_progress"
+                },
+                {
+                  "key": "priority",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "фильтрация по дате выполнения",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/?due_date_after=2024-01-01&due_date_before=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", ""],
+              "query": [
+                {
+                  "key": "due_date_after",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "due_date_before",
+                  "value": "2024-12-31"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "поиск по названию и описанию",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/?search=важная",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", ""],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "важная"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "сортировка по приоритету",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/?ordering=priority",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", ""],
+              "query": [
+                {
+                  "key": "ordering",
+                  "value": "priority"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "сортировка по сроку выполнения (возрастание)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/?ordering=due_date",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", ""],
+              "query": [
+                {
+                  "key": "ordering",
+                  "value": "due_date"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "задачи - дополнительные методы",
+      "item": [
+        {
+          "name": "получить просроченные задачи",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/overdue/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "overdue", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "получить задачи на ближайшие 7 дней",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/upcoming/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "upcoming", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "изменить статус задачи",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-CSRFToken",
+                "value": "{{csrf_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"done\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks/1/change_status/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "1", "change_status", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "загрузить вложение к задаче",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-CSRFToken",
+                "value": "{{csrf_token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/путь/к/файлу.txt"
+                },
+                {
+                  "key": "description",
+                  "value": "тестовый файл",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks/1/upload_attachment/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "1", "upload_attachment", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "вложения",
+      "item": [
+        {
+          "name": "получить список вложений",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/attachments/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "attachments", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "получить вложения конкретной задачи",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/attachments/?task_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "attachments", ""],
+              "query": [
+                {
+                  "key": "task_id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "получить конкретное вложение",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/attachments/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "attachments", "1", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "удалить вложение",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-CSRFToken",
+                "value": "{{csrf_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/attachments/1/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "attachments", "1", ""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "теги",
+      "item": [
+        {
+          "name": "получить список тегов",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tags/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tags", ""]
+            },
+            "description": "примечание: эндпоинт для тегов может потребовать дополнительной настройки, если не настроен в urls.py"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "admin_username",
+      "value": "ваш_логин",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "ваш_пароль",
+      "type": "string"
+    },
+    {
+      "key": "csrf_token",
+      "value": "",
+      "type": "string",
+      "description": "получить из cookies после входа в админку (ключ csrftoken)"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  }
+}

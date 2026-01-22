@@ -135,9 +135,6 @@ class Comment(models.Model):
     def __str__(self):
         return f'Комментарий от {self.author} к задаче #{self.task.id}'
 
-
-
-
 class Attachment(models.Model):
     """вложение к задаче (файлы, изображения)"""
     FILE_TYPES = [
