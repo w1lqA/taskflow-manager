@@ -1,3 +1,4 @@
+<!-- tasks/templates/tasks/task_form_content.html -->
 <div class="modal-form">
     <div class="modal-header">
         <h2 class="text-xl font-semibold text-white">
@@ -6,7 +7,7 @@
     </div>
     
     <div class="modal-content space-y-5">
-        <form id="taskForm" onsubmit="submitTaskForm(event)">
+        <form id="taskForm" onsubmit="submitTaskForm(event)" enctype="multipart/form-data">
             {% csrf_token %}
             
             <!-- Название -->
@@ -91,6 +92,32 @@
                            class="w-full px-4 py-2.5 bg-white/5 border border-gray-700/50 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition">
                 </div>
             </div>
+
+            <!-- Файлы для новой задачи -->
+            {% if not task %}
+            <div class="border-t border-gray-800/50 pt-5">
+                <h3 class="text-sm font-medium text-gray-300 mb-3">Файлы (необязательно)</h3>
+                
+                <div class="glass-card p-4 rounded-lg">
+                    <div class="space-y-3">
+                        <div>
+                            <input type="file" name="files" multiple
+                                   class="w-full px-3 py-1.5 bg-white/5 border border-gray-700/50 rounded text-white text-xs
+                                          file:mr-3 file:py-1 file:px-3 file:rounded file:border-0
+                                          file:text-xs file:font-medium file:bg-blue-500/20 file:text-blue-400
+                                          hover:file:bg-blue-500/30">
+                            <p class="text-xs text-gray-500 mt-1">
+                                Можно выбрать несколько файлов. Макс. 10MB каждый.
+                            </p>
+                        </div>
+                        
+                        <div class="text-xs text-gray-400">
+                            <p>📌 Файлы будут прикреплены к задаче после её создания</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </form>
     </div>
 

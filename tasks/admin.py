@@ -1,6 +1,106 @@
+from django.conf import settings
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Project, Tag, Task, Comment, TaskHistory
+from simple_history.admin import SimpleHistoryAdmin
+from import_export.admin import ExportMixin
+from import_export import resources, fields
+from import_export.widgets import ForeignKeyWidget
+from import_export.formats.base_formats import CSV, XLSX
+
+from .models import Project, Tag, Task, Comment, Attachment
+
+
+class TaskResource(resources.ModelResource):
+    """Ресурс для экспорта задач"""
+    
+    # Кастомные поля
+    project_title = fields.Field(
+        column_name='Проект',
+        attribute='project',
+        widget=ForeignKeyWidget(Project, 'title')
+    )
+    
+    author_name = fields.Field(
+        column_name='Автор',
+        attribute='author',
+        widget=ForeignKeyWidget(settings.AUTH_USER_MODEL, 'username')
+    )
+    
+    # 1. Кастомный метод для статуса
+    status_display = fields.Field(
+        column_name='Статус',
+        attribute='status'
+    )
+    
+    # 2. Кастомный метод для даты выполнения
+    due_date_formatted = fields.Field(
+        column_name='Дата выполнения'
+    )
+    
+    # 3. Кастомный метод для приоритета
+    priority_category = fields.Field(
+        column_name='Категория приоритета'
+    )
+    
+    class Meta:
+        model = Task
+        fields = (
+            'id', 'title', 'description', 'status_display', 
+            'priority', 'priority_category', 'due_date_formatted',
+            'project_title', 'author_name', 'created_at', 'updated_at'
+        )
+        export_order = fields
+        skip_unchanged = True
+        report_skipped = False
+    
+    # 1 для фильтрации queryset (только задачи с высоким приоритетом)
+    def get_export_queryset(self, request):
+        """Экспортировать только задачи с высоким приоритетом (1-2)"""
+        queryset = super().get_export_queryset(request)
+        return queryset.filter(priority__lte=2)
+    
+    # 2. для преобразования даты
+    def dehydrate_due_date_formatted(self, task):
+        """Преобразовать поле due_date в формат DD-MM-YYYY"""
+        if task.due_date:
+            return task.due_date.strftime('%d-%m-%Y')
+        return 'Нет срока'
+    
+    # 3. для преобразования статуса
+    def dehydrate_status_display(self, task):
+        """Преобразовать поле status в читаемый формат"""
+        status_map = {
+            'todo': 'К выполнению',
+            'in_progress': 'В процессе',
+            'done': 'Выполнено',
+            'backlog': 'Отложено'
+        }
+        return status_map.get(task.status, task.status)
+    
+    # доп.кастомный метод
+    def dehydrate_priority_category(self, task):
+        """Категория приоритета"""
+        if task.priority == 1:
+            return 'Критический'
+        elif task.priority == 2:
+            return 'Высокий'
+        elif task.priority == 3:
+            return 'Средний'
+        elif task.priority == 4:
+            return 'Низкий'
+        else:
+            return 'Минимальный'
+    
+    # форматирование дат создания/обновления
+    def dehydrate_created_at(self, task):
+        if task.created_at:
+            return task.created_at.strftime('%d-%m-%Y %H:%M')
+        return ''
+    
+    def dehydrate_updated_at(self, task):
+        if task.updated_at:
+            return task.updated_at.strftime('%d-%m-%Y %H:%M')
+        return ''
 
 # вспомогательный класс для inline
 class CommentInline(admin.TabularInline):
@@ -71,22 +171,49 @@ class TagAdmin(admin.ModelAdmin):
         return obj.tasks.count()
 
 
+class AttachmentInline(admin.TabularInline):
+    """Inline для отображения вложений внутри задачи."""
+    model = Attachment
+    extra = 0
+    readonly_fields = ('file_preview', 'file_size_display', 'uploaded_by', 'uploaded_at')
+    fields = ('file', 'file_preview', 'description', 'file_size_display', 'uploaded_by', 'uploaded_at')
+    verbose_name = 'Вложение'
+    verbose_name_plural = 'Вложения'
+    
+    def file_preview(self, obj):
+        if obj.file_type == 'image' and obj.file:
+            return format_html(
+                '<img src="{}" style="max-height: 50px; max-width: 50px;" />',
+                obj.file.url
+            )
+        return obj.get_file_icon()
+    file_preview.short_description = 'Превью'
+    
+    def file_size_display(self, obj):
+        return obj.get_readable_size()
+    file_size_display.short_description = 'Размер'
+
+
 # админ класс для задач (дефолтный)
 @admin.register(Task)
-class TaskAdmin(admin.ModelAdmin):
-    # нвстройка отображаемых полей в списке
+class TaskAdmin(ExportMixin, SimpleHistoryAdmin):
+    resource_class = TaskResource
+    formats = [XLSX, CSV]
+
+    # Существующие настройки остаются
     list_display = (
         'id',
         'title',
         'project_link',
         'author_link',
-        'status',  # <-- Оригинальное поле для list_editable
-        'status_display',  # <-- Красивое отображение (только для просмотра)
+        'status',
+        'status_display',
         'priority_display',
         'due_date',
         'completed_at',
         'created_at'
     )
+    
     list_display_links = ('id', 'title')  # Кликабельные поля
     list_filter = ('status', 'priority', 'due_date', 'created_at')  # Фильтры справа
     search_fields = ('title', 'description', 'project__title')  # Поиск
@@ -160,6 +287,14 @@ class TaskAdmin(admin.ModelAdmin):
             obj.editor = request.user
         super().save_model(request, obj, form, change)
 
+    actions = ['export_selected_objects']
+    
+    def export_selected_objects(self, request, queryset):
+        """Кастомное действие для экспорта выбранных задач"""
+        # Используем встроенный функционал ExportMixin
+        return self.export_action(request, queryset)
+    export_selected_objects.short_description = "Экспортировать выбранные задачи в Excel"
+
 
 # админ класс для комментов
 @admin.register(Comment)
@@ -192,38 +327,108 @@ class CommentAdmin(admin.ModelAdmin):
         return format_html('<a href="{}">{}</a>', url, obj.author.username)
 
 
-# админ класс для истории изменений (пока что история изменений не реализована)
-@admin.register(TaskHistory)
-class TaskHistoryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'task_link', 'action_display', 'changed_by_link', 'changed_at')
-    list_display_links = ('id',)
-    list_filter = ('action', 'changed_at')
-    search_fields = ('task__title', 'changed_by__username')
-    raw_id_fields = ('task', 'changed_by')
-    readonly_fields = ('task', 'changes', 'action', 'changed_by', 'changed_at')
-    date_hierarchy = 'changed_at'
-    list_per_page = 25
 
+
+@admin.register(Attachment)
+class AttachmentAdmin(admin.ModelAdmin):
+    """админка для вложений"""
+    list_display = (
+        'id',
+        'file_icon_display',
+        'original_name_display',
+        'task_link',
+        'uploaded_by_link',
+        'file_type_display',
+        'file_size_display',
+        'uploaded_at'
+    )
+    list_display_links = ('id', 'file_icon_display')
+    list_filter = ('file_type', 'uploaded_at', 'task__project')
+    search_fields = ('original_name', 'description', 'task__title')
+    raw_id_fields = ('task', 'uploaded_by')
+    readonly_fields = (
+        'file_size',
+        'uploaded_at',
+        'updated_at',
+        'file_preview',
+        'file_type',
+        'original_name'
+    )
+    date_hierarchy = 'uploaded_at'
+    list_per_page = 25
+    
+    fieldsets = (
+        ('Основная информация', {
+            'fields': ('task', 'uploaded_by', 'description')
+        }),
+        ('Файл', {
+            'fields': ('file', 'file_preview', 'original_name', 'file_type')
+        }),
+        ('Информация о файле', {
+            'fields': ('file_size', 'uploaded_at', 'updated_at')
+        }),
+    )
+    
+    # кастомные методы для отображения
+    
+    @admin.display(description='Файл')
+    def file_icon_display(self, obj):
+        return f"{obj.get_file_icon()} {obj.original_name[:30]}..."
+    
+    @admin.display(description='Имя файла')
+    def original_name_display(self, obj):
+        if len(obj.original_name) > 30:
+            return f"{obj.original_name[:30]}..."
+        return obj.original_name
+    
     @admin.display(description='Задача')
     def task_link(self, obj):
         from django.urls import reverse
         url = reverse('admin:tasks_task_change', args=[obj.task.id])
-        return format_html('<a href="{}">{}</a>', url, obj.task.title)
-
-    @admin.display(description='Действие')
-    def action_display(self, obj):
-        actions = {
-            'created': ('📝', 'Создано'),
-            'updated': ('✏️', 'Обновлено'),
-            'deleted': ('🗑️', 'Удалено'),
+        return format_html('<a href="{}">#{}</a>', url, obj.task.id)
+    
+    @admin.display(description='Кто загрузил')
+    def uploaded_by_link(self, obj):
+        from django.urls import reverse
+        url = reverse('admin:users_user_change', args=[obj.uploaded_by.id])
+        return format_html('<a href="{}">{}</a>', url, obj.uploaded_by.username)
+    
+    @admin.display(description='Тип файла')
+    def file_type_display(self, obj):
+        colors = {
+            'image': '#e74c3c',
+            'document': '#3498db',
+            'archive': '#f39c12',
+            'other': '#95a5a6',
         }
-        icon, text = actions.get(obj.action, ('?', obj.action))
-        return f"{icon} {text}"
-
-    @admin.display(description='Кем изменено')
-    def changed_by_link(self, obj):
-        if obj.changed_by:
-            from django.urls import reverse
-            url = reverse('admin:users_user_change', args=[obj.changed_by.id])
-            return format_html('<a href="{}">{}</a>', url, obj.changed_by.username)
-        return 'Система'
+        color = colors.get(obj.file_type, '#000')
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color,
+            obj.get_file_type_display()
+        )
+    
+    @admin.display(description='Размер')
+    def file_size_display(self, obj):
+        return obj.get_readable_size()
+    
+    @admin.display(description='Превью')
+    def file_preview(self, obj):
+        if obj.file_type == 'image' and obj.file:
+            return format_html(
+                '<img src="{}" style="max-height: 200px; max-width: 200px;" />',
+                obj.file.url
+            )
+        elif obj.file_type == 'document':
+            return '📄 Документ'
+        elif obj.file_type == 'archive':
+            return '🗜️ Архив'
+        else:
+            return '📎 Файл'
+    file_preview.short_description = 'Предпросмотр'
+    
+    # автоматически устанавливаем uploaded_by
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:  # только при создании
+            obj.uploaded_by = request.user
+        super().save_model(request, obj, form, change)

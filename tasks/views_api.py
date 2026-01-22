@@ -7,8 +7,11 @@ from django.db.models import Q
 from django.utils import timezone
 from datetime import timedelta
 
-from .models import Task, Project
-from .serializers import TaskSerializer, ProjectSerializer, CommentSerializer
+from .models import Task, Project, Attachment
+from .serializers import TaskSerializer, ProjectSerializer, CommentSerializer, AttachmentSerializer
+from .filters import TaskFilter 
+from .pagination import TaskPagination
+
 
 class ProjectViewSet(viewsets.ModelViewSet):
     """API для управления проектами"""
@@ -30,18 +33,18 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
     
-    # настройки фильтрации (позже расширим)
+    # настройки фильтрации
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['status', 'priority', 'project']
+    filterset_class = TaskFilter  # кастомный фильтр
     search_fields = ['title', 'description']
     ordering_fields = ['created_at', 'updated_at', 'due_date', 'priority']
-    ordering = ['-created_at']  # по умолчанию сортируем по дате создания
+    ordering = ['-created_at']
+    
+    pagination_class = TaskPagination
     
     def get_queryset(self):
-        # базовый queryset - задачи текущего пользователя
-        queryset = Task.objects.filter(author=self.request.user)
-        
-        return queryset
+        # 5. фильтрация по текущему пользователю (автоматически)
+        return Task.objects.filter(author=self.request.user)
     
     # @action методы (специальные эндпоинты)
     
@@ -116,3 +119,63 @@ class TaskViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def upload_attachment(self, request, pk=None):
+        """Загрузить вложение к задаче"""
+        task = self.get_object()
+        
+        # проверяем файл
+        if 'file' not in request.FILES:
+            return Response(
+                {'error': 'Файл не предоставлен'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        file_obj = request.FILES['file']
+        
+        # создаем вложение
+        attachment = Attachment.objects.create(
+            task=task,
+            file=file_obj,
+            uploaded_by=request.user,
+            description=request.data.get('description', '')
+        )
+        
+        serializer = AttachmentSerializer(attachment, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+
+class AttachmentViewSet(viewsets.ModelViewSet):
+    """API для управления вложениями"""
+    serializer_class = AttachmentSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['file_type', 'task']
+    
+    def get_queryset(self):
+        queryset = Attachment.objects.filter(
+            task__author=self.request.user
+        )
+        
+        # дополнительная фильтрация по задаче, если передали task_id
+        task_id = self.request.query_params.get('task_id')
+        if task_id:
+            queryset = queryset.filter(task_id=task_id)
+            
+        return queryset
+    
+    def perform_create(self, serializer):
+        # проверяем, что задача принадлежит пользователю
+        task_id = self.request.data.get('task')
+        if task_id:
+            task = Task.objects.filter(
+                id=task_id,
+                author=self.request.user
+            ).first()
+            if not task:
+                raise serializers.ValidationError(
+                    {'task': 'Задача не найдена или вы не являетесь ее автором'}
+                )
+        
+        serializer.save(uploaded_by=self.request.user)

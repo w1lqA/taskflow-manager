@@ -1,0 +1,28 @@
+[flake8]
+max-line-length = 88
+extend-ignore = E203, W503, E501
+exclude = 
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    .env,
+    .tox,
+    .eggs,
+    *.egg,
+    migrations,
+    media,
+    static,
+    docs,
+    build,
+    dist,
+    *.sqlite3,
+    *.log,
+    *.pyc
+per-file-ignores = 
+    __init__.py:F401,F403
+    */migrations/*.py:F401,F403
+    */settings/*.py:F401,F403
+    */urls.py:F401,F403
+include = *.py

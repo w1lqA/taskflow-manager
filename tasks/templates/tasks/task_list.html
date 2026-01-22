@@ -612,6 +612,205 @@
         });
     }
 
+
+    // Используем глобальную функцию из основного шаблона
+    function showAttachmentForm() {
+        document.getElementById('attachment-form').classList.remove('hidden');
+        document.getElementById('fileInput').focus();
+    }
+    
+    function hideAttachmentForm() {
+        document.getElementById('attachment-form').classList.add('hidden');
+        document.getElementById('uploadForm').reset();
+    }
+
+    function deleteAttachment(attachmentId, button) {
+        if (!confirm('Удалить этот файл?')) return;
+        
+        // Показываем индикатор удаления
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '⏳';
+        button.disabled = true;
+        
+        console.log('Удаление файла ID:', attachmentId);  // Логируем
+        
+        fetch(`/tasks/attachment/${attachmentId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            
+            if (data.success) {
+                showNotification('Успешно', data.message, 'success');
+                
+                // Удаляем элемент из DOM
+                const attachmentElement = document.querySelector(`[data-attachment-id="${attachmentId}"]`);
+                if (attachmentElement) {
+                    attachmentElement.style.opacity = '0';
+                    attachmentElement.style.transform = 'translateX(-20px)';
+                    setTimeout(() => {
+                        attachmentElement.remove();
+                        
+                        // Если список пустой, показываем сообщение
+                        const attachmentsList = document.getElementById('attachments-list');
+                        if (attachmentsList && attachmentsList.children.length === 0) {
+                            attachmentsList.innerHTML = `
+                                <div class="glass-card p-6 text-center">
+                                    <div class="text-3xl mb-2 text-gray-600">📎</div>
+                                    <p class="text-gray-400 text-sm">Нет загруженных файлов</p>
+                                </div>
+                            `;
+                        }
+                    }, 300);
+                } else {
+                    // Восстанавливаем кнопку
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                    showNotification('Ошибка', data.error, 'error');
+                }
+            } else {
+                // Восстанавливаем кнопку
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+                showNotification('Ошибка', data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Восстанавливаем кнопку
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+            showNotification('Ошибка', 'Не удалось удалить файл', 'error');
+        });
+    }
+    
+    function uploadAttachment(taskId) {
+        const form = document.getElementById('uploadForm');
+        const formData = new FormData(form);
+        const fileInput = document.getElementById('fileInput');
+        
+        if (!fileInput.files.length) {
+            alert('Выберите файл для загрузки');
+            return;
+        }
+        
+        // Показываем индикатор загрузки
+        const submitBtn = form.querySelector('button[type="button"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = '⏳ Загрузка...';
+        submitBtn.disabled = true;
+        
+        fetch(`/tasks/task/${taskId}/upload-attachment/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCSRFToken()
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Восстанавливаем кнопку
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                
+                showNotification('Успешно', data.message, 'success');
+                
+                // Добавляем новый файл в список
+                if (data.attachment) {
+                    const attachmentsList = document.getElementById('attachments-list');
+                    const emptyDiv = attachmentsList.querySelector('.glass-card.p-6.text-center');
+                    
+                    // Удаляем сообщение "нет файлов" если есть
+                    if (emptyDiv) {
+                        emptyDiv.remove();
+                    }
+                    
+                    // Определяем HTML для превью
+                    let previewHtml = '';
+                    if (data.attachment.file_type === 'image') {
+                        previewHtml = `
+                            <div class="flex-shrink-0">
+                                <a href="${data.attachment.file_url}" target="_blank" class="block">
+                                    <img src="${data.attachment.file_url}" 
+                                         alt="${data.attachment.original_name}"
+                                         class="w-16 h-16 object-cover rounded-lg border border-gray-700/50 hover:border-blue-500/50 transition-colors">
+                                </a>
+                            </div>
+                        `;
+                    } else {
+                        previewHtml = `<div class="text-2xl flex-shrink-0">${data.attachment.file_icon}</div>`;
+                    }
+                    
+                    const attachmentHtml = `
+                        <div class="glass-card p-4 rounded-lg flex items-start justify-between group hover:border-gray-600/30" 
+                             data-attachment-id="${data.attachment.id}">
+                            <div class="flex items-start gap-4 flex-1 min-w-0">
+                                ${previewHtml}
+                                
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <a href="${data.attachment.file_url}" 
+                                           target="_blank"
+                                           class="text-white text-sm font-medium truncate hover:text-blue-400 transition-colors">
+                                            ${data.attachment.original_name}
+                                        </a>
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-3 text-xs text-gray-400 mb-2">
+                                        <span>${data.attachment.readable_size}</span>
+                                        <span>${data.attachment.uploaded_at}</span>
+                                        ${data.attachment.description ? 
+                                            `<span class="text-gray-500">• ${data.attachment.description}</span>` : ''}
+                                    </div>
+                                    
+                                    ${data.attachment.file_type === 'image' ? 
+                                        '<div class="text-xs text-blue-400">📷 Изображение</div>' : ''}
+                                </div>
+                            </div>
+                            
+                            <button onclick="deleteAttachment('${data.attachment.id}', this)"
+                                    class="text-gray-400 hover:text-red-400 p-2 transition-all">
+                                🗑️
+                            </button>
+                        </div>
+                    `;
+                    
+                    attachmentsList.insertAdjacentHTML('afterbegin', attachmentHtml);
+                }
+                
+                // Очищаем форму и скрываем её
+                hideAttachmentForm();
+                
+            } else {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                showNotification('Ошибка', data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            showNotification('Ошибка', 'Не удалось загрузить файл', 'error');
+        });
+    }
+
     // ===== УВЕДЫ =====
     function showNotification(title, message, type = 'info') {
         const notification = document.getElementById('notification');

@@ -6,3 +6,5 @@ django-simple-history
 django-import-export
 Pillow>=11.0.0
 gunicorn
+flake8>=6.0.0
+openpyxl>=3.0.0 

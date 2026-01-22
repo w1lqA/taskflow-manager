@@ -1,15 +1,7 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 from . import views
-from .views_api import TaskViewSet, ProjectViewSet
-
-# создаём роутер для API
-router = DefaultRouter()
-router.register(r'api/tasks', TaskViewSet, basename='task')
-router.register(r'api/projects', ProjectViewSet, basename='project')
 
 urlpatterns = [
-    # старые URL для веб-интерфейса
     path('', views.task_list, name='task_list'),
     
     # AJAX endpoints для модалок
@@ -23,6 +15,8 @@ urlpatterns = [
     path('task/<int:pk>/update/', views.task_update, name='task_update_ajax'),
     path('task/<int:pk>/delete/', views.task_delete, name='task_delete_ajax'),
     
-    # подключаем API роутер
-    path('', include(router.urls)),
+    # Вложения
+    path('task/<int:pk>/upload-attachment/', views.upload_attachment, name='upload_attachment'),
+    path('task/<int:pk>/upload-multiple-attachments/', views.upload_multiple_attachments, name='upload_multiple_attachments'),
+    path('attachment/<int:pk>/delete/', views.delete_attachment, name='delete_attachment'),
 ]

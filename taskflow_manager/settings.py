@@ -145,7 +145,12 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-
-
 AUTH_USER_MODEL = 'users.User'
+
+# Увеличиваем лимит загрузки файлов
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+
+# Настройки для статических файлов
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

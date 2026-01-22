@@ -1,8 +1,35 @@
+version: '3.8'
+
 services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: taskflow
+      POSTGRES_USER: taskflow_user
+      POSTGRES_PASSWORD: taskflow_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
     ports:
       - "8000:8000"
+    environment:
+      DATABASE_URL: postgres://taskflow_user:taskflow_password@db:5432/taskflow
+      DEBUG: "True"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

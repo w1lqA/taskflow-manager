@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from simple_history.models import HistoricalRecords
+import os
 
 class Project(models.Model):
     """проект (категория) для группировки задач."""
@@ -85,9 +87,11 @@ class Task(models.Model):
         blank=True
     ) #многие ко многим
     
-    # Временные метки
+    #Временные метки
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
     updated_at = models.DateTimeField('Дата изменения', auto_now=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = 'tasks_task'
@@ -131,34 +135,95 @@ class Comment(models.Model):
     def __str__(self):
         return f'Комментарий от {self.author} к задаче #{self.task.id}'
 
-class TaskHistory(models.Model):
-    ACTION_CHOICES = [
-        ('created', 'Создано'),
-        ('updated', 'Обновлено'),
-        ('deleted', 'Удалено'),
+
+
+
+class Attachment(models.Model):
+    """вложение к задаче (файлы, изображения)"""
+    FILE_TYPES = [
+        ('image', 'Изображение'),
+        ('document', 'Документ'),
+        ('archive', 'Архив'),
+        ('other', 'Другое'),
     ]
     
     task = models.ForeignKey(
         Task,
         on_delete=models.CASCADE,
-        related_name='history',
+        related_name='attachments',
         verbose_name='Задача'
     )
-    changes = models.JSONField('Изменения', default=dict)
-    action = models.CharField('Действие', max_length=20, choices=ACTION_CHOICES)
-    changed_by = models.ForeignKey(
+    file = models.FileField('Файл', upload_to='attachments/%Y/%m/%d/')
+    file_type = models.CharField('Тип файла', max_length=20, choices=FILE_TYPES)
+    original_name = models.CharField('Оригинальное имя', max_length=255)
+    file_size = models.IntegerField('Размер файла (байт)', default=0)
+    
+    # кто загрузил
+    uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        verbose_name='Кем изменено'
+        on_delete=models.CASCADE,
+        related_name='uploaded_attachments',
+        verbose_name='Кто загрузил'
     )
-    changed_at = models.DateTimeField('Дата изменения', auto_now_add=True)
-
+    
+    # временные метки
+    uploaded_at = models.DateTimeField('Дата загрузки', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата изменения', auto_now=True)
+    description = models.CharField('Описание', max_length=255, blank=True)
+    
     class Meta:
-        db_table = 'tasks_taskhistory'
-        verbose_name = 'История задачи'
-        verbose_name_plural = 'Истории задач'
-        ordering = ['-changed_at']
-
+        db_table = 'tasks_attachment'
+        verbose_name = 'Вложение'
+        verbose_name_plural = 'Вложения'
+        ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['task', 'file_type']),
+        ]
+    
     def __str__(self):
-        return f'Изменение #{self.id} задачи "{self.task.title}"'
+        return f"Вложение: {self.original_name} (к задаче #{self.task_id})"
+    
+    def save(self, *args, **kwargs):
+        # сохраняем оригинальное имя файла
+        if not self.original_name and self.file:
+            self.original_name = os.path.basename(self.file.name)
+        
+        # определяем тип файла по расширению
+        if self.file and not self.file_type:
+            ext = os.path.splitext(self.file.name)[1].lower()
+            if ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']:
+                self.file_type = 'image'
+            elif ext in ['.pdf', '.doc', '.docx', '.txt', '.xls', '.xlsx']:
+                self.file_type = 'document'
+            elif ext in ['.zip', '.rar', '.7z', '.tar.gz']:
+                self.file_type = 'archive'
+            else:
+                self.file_type = 'other'
+        
+        # сохраняем размер файла
+        if self.file:
+            try:
+                self.file_size = self.file.size
+            except (OSError, ValueError):
+                self.file_size = 0
+        
+        super().save(*args, **kwargs)
+    
+    def get_file_icon(self):
+        """возвращает иконку в зависимости от типа файла"""
+        icons = {
+            'image': '🖼️',
+            'document': '📄',
+            'archive': '🗜️',
+            'other': '📎',
+        }
+        return icons.get(self.file_type, '📎')
+    
+    def get_readable_size(self):
+        """возвращает размер файла в читаемом формате"""
+        if self.file_size < 1024:
+            return f"{self.file_size} Б"
+        elif self.file_size < 1024 * 1024:
+            return f"{self.file_size / 1024:.1f} КБ"
+        else:
+            return f"{self.file_size / (1024 * 1024):.1f} МБ"

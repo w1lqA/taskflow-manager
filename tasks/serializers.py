@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Task, Project, Tag, Comment
+from .models import Task, Project, Tag, Comment, Attachment
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -25,12 +25,56 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ['id', 'name', 'color']
 
+
+class AttachmentSerializer(serializers.ModelSerializer):
+    """Сериализатор для вложений"""
+    uploaded_by_username = serializers.ReadOnlyField(source='uploaded_by.username')
+    file_url = serializers.FileField(source='file', read_only=True)
+    file_icon = serializers.ReadOnlyField(source='get_file_icon')
+    readable_size = serializers.ReadOnlyField(source='get_readable_size')
+    
+    class Meta:
+        model = Attachment
+        fields = [
+            'id',
+            'task',
+            'file',
+            'file_url',
+            'file_type',
+            'original_name',
+            'file_size',
+            'readable_size',
+            'file_icon',
+            'uploaded_by',
+            'uploaded_by_username',
+            'uploaded_at',
+            'updated_at',
+            'description'
+        ]
+        read_only_fields = [
+            'uploaded_by',
+            'uploaded_at',
+            'updated_at',
+            'file_type',
+            'original_name',
+            'file_size'
+        ]
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['uploaded_by'] = request.user
+        return super().create(validated_data)
+
+
 class TaskSerializer(serializers.ModelSerializer):
     # поля только для чтения
     project = ProjectSerializer(read_only=True)
     author_username = serializers.ReadOnlyField(source='author.username')
     tags = TagSerializer(many=True, read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    attachments = AttachmentSerializer(many=True, read_only=True)
     
     # поля только для записи
     project_id = serializers.PrimaryKeyRelatedField(
@@ -55,7 +99,7 @@ class TaskSerializer(serializers.ModelSerializer):
             'priority', 'due_date', 'completed_at',
             
             # для чтения
-            'project', 'author_username', 'tags',
+            'project', 'author_username', 'tags', 'attachments', 
             
             # для записи
             'project_id', 'tags_ids',
@@ -64,7 +108,7 @@ class TaskSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'author', 'editor', 'created_at', 'updated_at', 
-            'completed_at', 'status_display'
+            'completed_at', 'status_display', 'attachments' 
         ]
     
     # ВАЛИДАЦИЯ 1: проверка приоритета (должен быть 1-5)
